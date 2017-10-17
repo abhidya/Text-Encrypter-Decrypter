@@ -1,0 +1,1 @@
+start "C:\Users\mannb\Desktop\Encrypt" lock.exe secret.txt  
