@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+*.tmp
+*.o
+*.out
+a.out
+text-lock
+build/
+*.user
