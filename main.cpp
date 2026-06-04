@@ -1,124 +1,89 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <stdexcept>
 #include <string>
-#include <windows.h>
 #include <vector>
+
 using namespace std;
 
-void fake();
+namespace {
 
-void fake2();
+void usage(const char *program) {
+  cerr << "Usage: " << program
+       << " --encrypt|--decrypt --key N --input FILE [--output FILE]\n"
+       << "If --output is omitted, the input file is updated in place.\n";
+}
+
+vector<char> read_file(const string &path) {
+  ifstream in(path, ios::binary);
+  if (!in) {
+    throw runtime_error("Unable to open input file: " + path);
+  }
+  return vector<char>((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+}
+
+void write_file(const string &path, const vector<char> &data) {
+  ofstream out(path, ios::binary | ios::trunc);
+  if (!out) {
+    throw runtime_error("Unable to open output file: " + path);
+  }
+  out.write(data.data(), static_cast<streamsize>(data.size()));
+}
+
+vector<char> xor_data(const vector<char> &input, int key) {
+  vector<char> output;
+  output.reserve(input.size());
+  for (char byte : input) {
+    output.push_back(static_cast<char>(byte ^ key));
+  }
+  return output;
+}
+
+} // namespace
 
 int main(int argc, char **argv) {
+  bool has_mode = false;
+  int key = -1;
+  string input_path;
+  string output_path;
 
-  int i, encode_key, temp;
-  char b, a;
-  bool choice = 0, cont_choice = 1;
-  ifstream myfile;
-  vector<char> rainfall;
-  vector<char> rainfall_c;
-  
-
-  if (argc > 1) {
-    myfile.open(argv[1]);
-  } else {
-    cout << "Usage: inputfile [Missing Input File]";
-    return -1;
+  for (int i = 1; i < argc; ++i) {
+    string arg = argv[i];
+    if (arg == "--encrypt" || arg == "--decrypt") {
+      has_mode = true;
+    } else if (arg == "--key" && i + 1 < argc) {
+      key = stoi(argv[++i]);
+    } else if (arg == "--input" && i + 1 < argc) {
+      input_path = argv[++i];
+    } else if (arg == "--output" && i + 1 < argc) {
+      output_path = argv[++i];
+    } else if (arg == "--help") {
+      usage(argv[0]);
+      return 0;
+    } else {
+      usage(argv[0]);
+      return 2;
+    }
   }
 
-    cout << "Encrypting or Decrypting file? [0 = decrypt| 1 = encrypt]  ";
-    cin >> choice;
+  if (!has_mode || key < 0 || key > 255 || input_path.empty()) {
+    usage(argv[0]);
+    return 2;
+  }
 
-    if (choice) {
-        rainfall.clear();
-      cout << "KEY to encrypt/decrypt file: [IMPORTANT: DO NOT FORGET KEY]  ";
-      cin >> encode_key;
-      if (myfile.is_open()) {
-        while (myfile >> noskipws >> b) {
-          temp = b ^ encode_key;
-          char temp_c = (char)temp;
-          rainfall.push_back(temp_c);
-        }
-        myfile.close();      }
+  if (output_path.empty()) {
+    output_path = input_path;
+  }
 
-      else
-        cout << endl << "Unable to open file" << endl;
+  try {
+    vector<char> input = read_file(input_path);
+    vector<char> output = xor_data(input, key);
+    write_file(output_path, output);
+    cout << "Wrote " << output.size() << " bytes to " << output_path << "\n";
+  } catch (const exception &error) {
+    cerr << error.what() << "\n";
+    return 1;
+  }
 
-      ofstream fout;
-      fout.open(argv[1]);
-      for (i = 0; i < rainfall.size(); i++) {
-        fout << rainfall[i];
-      }
-      rainfall.clear();
-      fout.close();
-      fake();
-    }
-
-    if (!choice) {
-        rainfall_c.clear();
-      cout << "KEY to encrypt/decrypt file: [IMPORTANT: DO NOT FORGET KEY]  ";
-      cin >> encode_key;
-      if (myfile.is_open()) {
-        while (myfile >> a) {
-          temp = a ^ encode_key;
-          char temp_c = (char)temp;
-          rainfall_c.push_back(temp_c);
-        }
-        myfile.close();
-      }
-
-      else
-        cout << "Unable to open file";
-
-      ofstream fout;
-      fout.open(argv[1]);
-      for (i = 0; i < rainfall_c.size(); i++) {
-        fout << rainfall_c[i];
-      }
-      fout.close();
-              rainfall_c.clear();
-
-      fake2();
-    }
-    cout << endl << endl << endl << endl << endl << endl << endl << "Done, Press any Key to Exit....";
-    cin >> cont_choice;
   return 0;
-}
-
-void fake() {
-  ifstream screengrab("carmike.txt");
-  string line;
-  bool poo = 1;
-  if (poo) {
-    if (screengrab) // same as: if (myfile.good())
-    {
-
-      while (getline(screengrab,
-                     line)) // same as: while (getline( myfile, line ).good())
-      {
-        cout << line << endl;
-        Sleep(1);
-      }
-      screengrab.close();
-    }
-  }
-}
-
-void fake2() {
-  ifstream screengrab("carmike2.txt");
-  string line;
-  bool poo = 1;
-  if (poo) {
-    if (screengrab) // same as: if (myfile.good())
-    {
-
-      while (getline(screengrab,
-                     line)) // same as: while (getline( myfile, line ).good())
-      {
-        cout << line << endl;
-        Sleep(1);
-      }
-      screengrab.close();
-    }
-  }
 }
